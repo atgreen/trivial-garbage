@@ -93,6 +93,7 @@
   #+clasp (gctools:garbage-collect)
   #+mezzano (mezzano.extensions:gc :full full)
   #+dotcl (dotcl:gc)
+  #+torcl (torcl-ext:gc :full full :verbose verbose)
   #+genera (scl:let-globally ((si:gc-report-stream *standard-output*)
                               (si:gc-reports-enable verbose)
                               (si:gc-ephemeral-reports-enable verbose)
@@ -144,7 +145,8 @@
     (%make-weak-pointer :pointer array))
   #+clasp (core:make-weak-pointer object)
   #+mezzano (mezzano.extensions:make-weak-pointer object)
-  #+dotcl (dotcl:make-weak-pointer object))
+  #+dotcl (dotcl:make-weak-pointer object)
+  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
 
 #-(or allegro openmcl lispworks genera cl-amiga)
 (defun weak-pointer-p (object)
@@ -158,7 +160,8 @@
   #+corman (ccl:weak-pointer-p object)
   #+clasp (core:weak-pointer-valid object)
   #+mezzano (mezzano.extensions:weak-pointer-p object)
-  #+dotcl (dotcl:weak-pointer-p object))
+  #+dotcl (dotcl:weak-pointer-p object)
+  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
 
 (defun weak-pointer-value (weak-pointer)
   "If @code{weak-pointer} is valid, returns its value. Otherwise,
@@ -174,7 +177,8 @@
   #+lispworks (svref (weak-pointer-pointer weak-pointer) 0)
   #+clasp (core:weak-pointer-value weak-pointer)
   #+mezzano (values (mezzano.extensions:weak-pointer-value weak-pointer))
-  #+dotcl (values (dotcl:weak-pointer-value weak-pointer)))
+  #+dotcl (values (dotcl:weak-pointer-value weak-pointer))
+  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
 
 ;;;; Weak Hash-tables
 
@@ -220,26 +224,30 @@
      #+(or lispworks sbcl abcl clasp clisp openmcl ecl-weak-hash mezzano dotcl) :key
      #+(or allegro cmu) t
      #+cl-amiga nil
-     #-(or lispworks sbcl abcl clisp openmcl allegro cmu ecl-weak-hash clasp mezzano cl-amiga dotcl)
+     #+torcl (weakness-missing weakness errorp)
+     #-(or lispworks sbcl abcl clisp openmcl allegro cmu ecl-weak-hash clasp mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:value
      #+allegro :weak
      #+(or clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano dotcl) :value
      #+genera nil
      #+cl-amiga nil
-     #-(or allegro clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano genera cl-amiga dotcl)
+     #+torcl (weakness-missing weakness errorp)
+     #-(or allegro clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano genera cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:key-or-value
      #+(or clisp sbcl abcl cmu mezzano dotcl) :key-or-value
      #+lispworks :either
      #+cl-amiga nil
-     #-(or clisp sbcl abcl lispworks cmu mezzano cl-amiga dotcl)
+     #+torcl (weakness-missing weakness errorp)
+     #-(or clisp sbcl abcl lispworks cmu mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:key-and-value
      #+(or clisp abcl sbcl cmu ecl-weak-hash mezzano dotcl) :key-and-value
      #+lispworks :both
      #+cl-amiga nil
-     #-(or clisp sbcl abcl lispworks cmu ecl-weak-hash mezzano cl-amiga dotcl)
+     #+torcl (weakness-missing weakness errorp)
+     #-(or clisp sbcl abcl lispworks cmu ecl-weak-hash mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))))
 
 (defun make-weak-hash-table (&rest args &key weakness (weakness-matters t)
@@ -289,7 +297,7 @@
   "Returns one of @code{nil}, @code{:key}, @code{:value},
    @code{:key-or-value} or @code{:key-and-value}."
   #-(or allegro sbcl abcl clisp cmu openmcl lispworks
-        ecl-weak-hash clasp mezzano genera dotcl)
+        ecl-weak-hash clasp mezzano genera dotcl torcl)
   (declare (ignore ht))
   ;; keep this first if any of the other lisps bugously insert a NIL
   ;; for the returned (values) even when *read-suppress* is NIL (e.g. clisp)
@@ -310,6 +318,10 @@
   #+clasp (core:hash-table-weakness ht)
   #+mezzano (mezzano.extensions:hash-table-weakness ht)
   #+dotcl (dotcl:hash-table-weakness ht)
+  ;; TorCL's ordinary hash tables are always strong. Weak construction above
+  ;; signals explicitly, so every hash table that can reach this branch has no
+  ;; weakness and NIL is exact rather than a compatibility downgrade.
+  #+torcl nil
   #+genera (if (null (getf (cli::basic-table-options ht) :gc-protect-values t))
                :value
                nil))
@@ -456,6 +468,7 @@
     (prog1 object
       (setf object nil)))
   #+dotcl (progn (dotcl:finalize object function) object)
+  #+torcl (progn (torcl-ext:finalize object function :dont-save t) object)
   #+genera
   (error "Finalizers are not available in Genera."))
 
@@ -499,5 +512,6 @@
       (when finalizer-key
         (setf (gethash finalizer-key *finalizers*) '()))))
   #+dotcl (dotcl:cancel-finalization object)
+  #+torcl (torcl-ext:cancel-finalization object)
   #+genera
   (error "Finalizers are not available in Genera."))

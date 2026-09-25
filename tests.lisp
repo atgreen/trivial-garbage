@@ -51,6 +51,17 @@
   (pushnew 'pointers.2 rt::*expected-failures*)
   (pushnew 'hashtables.weak-value.1 rt::*expected-failures*))
 
+;; TorCL deliberately rejects weak pointers/tables until its internal weak
+;; reference machinery has a complete Lisp-visible representation.  Expected
+;; failures keep the upstream suite honest without substituting strong objects.
+#+torcl
+(progn
+  (pushnew 'pointers.1 rt::*expected-failures*)
+  (pushnew 'pointers.2 rt::*expected-failures*)
+  (pushnew 'hashtables.weak-key.1 rt::*expected-failures*)
+  (pushnew 'hashtables.weak-key.2 rt::*expected-failures*)
+  (pushnew 'hashtables.weak-value.1 rt::*expected-failures*))
+
 #+genera
 (progn
   (pushnew 'hashtables.weak-key.1 rt::*expected-failures*)
@@ -86,14 +97,26 @@
   (declare (ignore x))
   nil)
 
+#+torcl
+(defun make-counter-finalizer (counter)
+  ;; TorCL currently captures a lambda's whole defining frame. Manufacture the
+  ;; callback in a frame that contains only COUNTER so the callback does not
+  ;; accidentally retain the target created by TEST-FINALIZERS-AUX.
+  (lambda () (incf (car counter))))
+
 (defun test-finalizers-aux (count extra-action)
   (let* ((cons (list 0))
          ;; lbd should not be defined in a lexical scope where obj is
          ;; present to prevent closing over the variable on compilers
          ;; which does not optimize away unused lexenv variables (i.e
          ;; ecl's bytecmp).
-         (lbd (lambda () (incf (car cons))))
-         (obj (string (gensym))))
+         (lbd #+torcl (make-counter-finalizer cons)
+              #-torcl (lambda () (incf (car cons))))
+         ;; TorCL's current string registry strongly interns every string, so a
+         ;; string cannot be a finalizer reachability probe yet. A vector has
+         ;; the same heap lifetime without that unrelated cache ownership.
+         (obj #+torcl (vector (gensym))
+              #-torcl (string (gensym))))
     (dotimes (i count)
       (finalize obj lbd))
     (when extra-action
