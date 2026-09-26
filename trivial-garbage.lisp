@@ -319,10 +319,7 @@
   #+clasp (core:hash-table-weakness ht)
   #+mezzano (mezzano.extensions:hash-table-weakness ht)
   #+dotcl (dotcl:hash-table-weakness ht)
-  ;; TorCL's ordinary hash tables are always strong. Weak construction above
-  ;; signals explicitly, so every hash table that can reach this branch has no
-  ;; weakness and NIL is exact rather than a compatibility downgrade.
-  #+torcl nil
+  #+torcl (torcl-ext:hash-table-weakness ht)
   #+genera (if (null (getf (cli::basic-table-options ht) :gc-protect-values t))
                :value
                nil))

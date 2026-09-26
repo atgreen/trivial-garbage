@@ -51,16 +51,13 @@
   (pushnew 'pointers.2 rt::*expected-failures*)
   (pushnew 'hashtables.weak-value.1 rt::*expected-failures*))
 
-;; TorCL deliberately rejects weak pointers/tables until its internal weak
-;; reference machinery has a complete Lisp-visible representation.  Expected
-;; failures keep the upstream suite honest without substituting strong objects.
+;; TorCL implements weak hash tables (:key, :value, :key-and-value), so those
+;; tests are expected to PASS.  Weak POINTERS are still rejected rather than
+;; substituted with strong references, so those two remain expected failures.
 #+torcl
 (progn
   (pushnew 'pointers.1 rt::*expected-failures*)
-  (pushnew 'pointers.2 rt::*expected-failures*)
-  (pushnew 'hashtables.weak-key.1 rt::*expected-failures*)
-  (pushnew 'hashtables.weak-key.2 rt::*expected-failures*)
-  (pushnew 'hashtables.weak-value.1 rt::*expected-failures*))
+  (pushnew 'pointers.2 rt::*expected-failures*))
 
 #+genera
 (progn
