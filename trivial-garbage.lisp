@@ -188,7 +188,7 @@
 
 (defun weakness-keyword-arg (weakness)
   (declare (ignorable weakness))
-  #+(or sbcl abcl clasp ecl-weak-hash mezzano dotcl) :weakness
+  #+(or sbcl abcl clasp ecl-weak-hash mezzano dotcl torcl) :weakness
   #+(or clisp openmcl) :weak
   #+lispworks :weak-kind
   #+allegro (case weakness (:key :weak-keys) (:value :values))
@@ -221,32 +221,33 @@
   ;; caller's `(if arg (list* arg opt args) args)` guard.
   (ecase weakness
     (:key
-     #+(or lispworks sbcl abcl clasp clisp openmcl ecl-weak-hash mezzano dotcl) :key
+     #+(or lispworks sbcl abcl clasp clisp openmcl ecl-weak-hash mezzano dotcl torcl) :key
      #+(or allegro cmu) t
      #+cl-amiga nil
-     #+torcl (weakness-missing weakness errorp)
      #-(or lispworks sbcl abcl clisp openmcl allegro cmu ecl-weak-hash clasp mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:value
      #+allegro :weak
-     #+(or clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano dotcl) :value
+     #+(or clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano dotcl torcl) :value
      #+genera nil
      #+cl-amiga nil
-     #+torcl (weakness-missing weakness errorp)
      #-(or allegro clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano genera cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:key-or-value
      #+(or clisp sbcl abcl cmu mezzano dotcl) :key-or-value
      #+lispworks :either
      #+cl-amiga nil
+     ;; TorCL implements :key, :value and :key-and-value natively. Keeping an
+     ;; entry while EITHER half is reachable needs an ephemeron fixpoint its
+     ;; collector does not have, so this mode is reported missing rather than
+     ;; silently downgraded to a strong table.
      #+torcl (weakness-missing weakness errorp)
      #-(or clisp sbcl abcl lispworks cmu mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))
     (:key-and-value
-     #+(or clisp abcl sbcl cmu ecl-weak-hash mezzano dotcl) :key-and-value
+     #+(or clisp abcl sbcl cmu ecl-weak-hash mezzano dotcl torcl) :key-and-value
      #+lispworks :both
      #+cl-amiga nil
-     #+torcl (weakness-missing weakness errorp)
      #-(or clisp sbcl abcl lispworks cmu ecl-weak-hash mezzano cl-amiga dotcl torcl)
      (weakness-missing weakness errorp))))
 
