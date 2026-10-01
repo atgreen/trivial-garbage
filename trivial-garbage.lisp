@@ -93,7 +93,7 @@
   #+clasp (gctools:garbage-collect)
   #+mezzano (mezzano.extensions:gc :full full)
   #+dotcl (dotcl:gc)
-  #+torcl (torcl-ext:gc :full full :verbose verbose)
+  #+egcl (egcl-ext:gc :full full :verbose verbose)
   #+genera (scl:let-globally ((si:gc-report-stream *standard-output*)
                               (si:gc-reports-enable verbose)
                               (si:gc-ephemeral-reports-enable verbose)
@@ -146,7 +146,7 @@
   #+clasp (core:make-weak-pointer object)
   #+mezzano (mezzano.extensions:make-weak-pointer object)
   #+dotcl (dotcl:make-weak-pointer object)
-  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
+  #+egcl (error "EGCL weak pointers are not yet supported by Trivial-Garbage."))
 
 #-(or allegro openmcl lispworks genera cl-amiga)
 (defun weak-pointer-p (object)
@@ -161,7 +161,7 @@
   #+clasp (core:weak-pointer-valid object)
   #+mezzano (mezzano.extensions:weak-pointer-p object)
   #+dotcl (dotcl:weak-pointer-p object)
-  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
+  #+egcl (error "EGCL weak pointers are not yet supported by Trivial-Garbage."))
 
 (defun weak-pointer-value (weak-pointer)
   "If @code{weak-pointer} is valid, returns its value. Otherwise,
@@ -178,7 +178,7 @@
   #+clasp (core:weak-pointer-value weak-pointer)
   #+mezzano (values (mezzano.extensions:weak-pointer-value weak-pointer))
   #+dotcl (values (dotcl:weak-pointer-value weak-pointer))
-  #+torcl (error "TorCL weak pointers are not yet supported by Trivial-Garbage."))
+  #+egcl (error "EGCL weak pointers are not yet supported by Trivial-Garbage."))
 
 ;;;; Weak Hash-tables
 
@@ -188,7 +188,7 @@
 
 (defun weakness-keyword-arg (weakness)
   (declare (ignorable weakness))
-  #+(or sbcl abcl clasp ecl-weak-hash mezzano dotcl torcl) :weakness
+  #+(or sbcl abcl clasp ecl-weak-hash mezzano dotcl egcl) :weakness
   #+(or clisp openmcl) :weak
   #+lispworks :weak-kind
   #+allegro (case weakness (:key :weak-keys) (:value :values))
@@ -221,34 +221,34 @@
   ;; caller's `(if arg (list* arg opt args) args)` guard.
   (ecase weakness
     (:key
-     #+(or lispworks sbcl abcl clasp clisp openmcl ecl-weak-hash mezzano dotcl torcl) :key
+     #+(or lispworks sbcl abcl clasp clisp openmcl ecl-weak-hash mezzano dotcl egcl) :key
      #+(or allegro cmu) t
      #+cl-amiga nil
-     #-(or lispworks sbcl abcl clisp openmcl allegro cmu ecl-weak-hash clasp mezzano cl-amiga dotcl torcl)
+     #-(or lispworks sbcl abcl clisp openmcl allegro cmu ecl-weak-hash clasp mezzano cl-amiga dotcl egcl)
      (weakness-missing weakness errorp))
     (:value
      #+allegro :weak
-     #+(or clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano dotcl torcl) :value
+     #+(or clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano dotcl egcl) :value
      #+genera nil
      #+cl-amiga nil
-     #-(or allegro clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano genera cl-amiga dotcl torcl)
+     #-(or allegro clisp openmcl sbcl abcl lispworks cmu ecl-weak-hash mezzano genera cl-amiga dotcl egcl)
      (weakness-missing weakness errorp))
     (:key-or-value
      #+(or clisp sbcl abcl cmu mezzano dotcl) :key-or-value
      #+lispworks :either
      #+cl-amiga nil
-     ;; TorCL implements :key, :value and :key-and-value natively. Keeping an
+     ;; EGCL implements :key, :value and :key-and-value natively. Keeping an
      ;; entry while EITHER half is reachable needs an ephemeron fixpoint its
      ;; collector does not have, so this mode is reported missing rather than
      ;; silently downgraded to a strong table.
-     #+torcl (weakness-missing weakness errorp)
-     #-(or clisp sbcl abcl lispworks cmu mezzano cl-amiga dotcl torcl)
+     #+egcl (weakness-missing weakness errorp)
+     #-(or clisp sbcl abcl lispworks cmu mezzano cl-amiga dotcl egcl)
      (weakness-missing weakness errorp))
     (:key-and-value
-     #+(or clisp abcl sbcl cmu ecl-weak-hash mezzano dotcl torcl) :key-and-value
+     #+(or clisp abcl sbcl cmu ecl-weak-hash mezzano dotcl egcl) :key-and-value
      #+lispworks :both
      #+cl-amiga nil
-     #-(or clisp sbcl abcl lispworks cmu ecl-weak-hash mezzano cl-amiga dotcl torcl)
+     #-(or clisp sbcl abcl lispworks cmu ecl-weak-hash mezzano cl-amiga dotcl egcl)
      (weakness-missing weakness errorp))))
 
 (defun make-weak-hash-table (&rest args &key weakness (weakness-matters t)
@@ -298,7 +298,7 @@
   "Returns one of @code{nil}, @code{:key}, @code{:value},
    @code{:key-or-value} or @code{:key-and-value}."
   #-(or allegro sbcl abcl clisp cmu openmcl lispworks
-        ecl-weak-hash clasp mezzano genera dotcl torcl)
+        ecl-weak-hash clasp mezzano genera dotcl egcl)
   (declare (ignore ht))
   ;; keep this first if any of the other lisps bugously insert a NIL
   ;; for the returned (values) even when *read-suppress* is NIL (e.g. clisp)
@@ -319,7 +319,7 @@
   #+clasp (core:hash-table-weakness ht)
   #+mezzano (mezzano.extensions:hash-table-weakness ht)
   #+dotcl (dotcl:hash-table-weakness ht)
-  #+torcl (torcl-ext:hash-table-weakness ht)
+  #+egcl (egcl-ext:hash-table-weakness ht)
   #+genera (if (null (getf (cli::basic-table-options ht) :gc-protect-values t))
                :value
                nil))
@@ -466,7 +466,7 @@
     (prog1 object
       (setf object nil)))
   #+dotcl (progn (dotcl:finalize object function) object)
-  #+torcl (progn (torcl-ext:finalize object function :dont-save t) object)
+  #+egcl (progn (egcl-ext:finalize object function :dont-save t) object)
   #+genera
   (error "Finalizers are not available in Genera."))
 
@@ -510,6 +510,6 @@
       (when finalizer-key
         (setf (gethash finalizer-key *finalizers*) '()))))
   #+dotcl (dotcl:cancel-finalization object)
-  #+torcl (torcl-ext:cancel-finalization object)
+  #+egcl (egcl-ext:cancel-finalization object)
   #+genera
   (error "Finalizers are not available in Genera."))

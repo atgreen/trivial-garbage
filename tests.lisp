@@ -51,10 +51,10 @@
   (pushnew 'pointers.2 rt::*expected-failures*)
   (pushnew 'hashtables.weak-value.1 rt::*expected-failures*))
 
-;; TorCL implements weak hash tables (:key, :value, :key-and-value), so those
+;; EGCL implements weak hash tables (:key, :value, :key-and-value), so those
 ;; tests are expected to PASS.  Weak POINTERS are still rejected rather than
 ;; substituted with strong references, so those two remain expected failures.
-#+torcl
+#+egcl
 (progn
   (pushnew 'pointers.1 rt::*expected-failures*)
   (pushnew 'pointers.2 rt::*expected-failures*))
@@ -94,9 +94,9 @@
   (declare (ignore x))
   nil)
 
-#+torcl
+#+egcl
 (defun make-counter-finalizer (counter)
-  ;; TorCL currently captures a lambda's whole defining frame. Manufacture the
+  ;; EGCL currently captures a lambda's whole defining frame. Manufacture the
   ;; callback in a frame that contains only COUNTER so the callback does not
   ;; accidentally retain the target created by TEST-FINALIZERS-AUX.
   (lambda () (incf (car counter))))
@@ -107,13 +107,13 @@
          ;; present to prevent closing over the variable on compilers
          ;; which does not optimize away unused lexenv variables (i.e
          ;; ecl's bytecmp).
-         (lbd #+torcl (make-counter-finalizer cons)
-              #-torcl (lambda () (incf (car cons))))
-         ;; TorCL's current string registry strongly interns every string, so a
+         (lbd #+egcl (make-counter-finalizer cons)
+              #-egcl (lambda () (incf (car cons))))
+         ;; EGCL's current string registry strongly interns every string, so a
          ;; string cannot be a finalizer reachability probe yet. A vector has
          ;; the same heap lifetime without that unrelated cache ownership.
-         (obj #+torcl (vector (gensym))
-              #-torcl (string (gensym))))
+         (obj #+egcl (vector (gensym))
+              #-egcl (string (gensym))))
     (dotimes (i count)
       (finalize obj lbd))
     (when extra-action
